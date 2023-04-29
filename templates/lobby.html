@@ -1,0 +1,915 @@
+{% extends "base.html" %}
+
+{% block head %}
+
+    <title>{{ code }}</title>
+    <style>
+        body {
+            background-color: #3b4b41
+            margin: 0;
+            padding: 0;
+            font-family: sans-serif;
+        }
+
+        #container {
+            position: absolute;
+            bottom: 0;
+            right: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            margin-right: 20px;
+            margin-bottom: 20px;
+        }
+
+        #container button {
+            margin: 5px;
+        }
+
+        #table {
+            position: absolute;
+            top: 50px;
+            left: 10px;
+            border-collapse: collapse;
+        }
+
+        #table td {
+            padding: 5px;
+        }
+
+        #table td:first-child {
+            padding: 5px;
+        }
+
+        #table button.first-column {
+            width: 300px;
+            height: 135px;
+            border: none;
+            background-color: #ddd;
+            color: #333;
+            font-size: 28px;
+        }
+
+        #table button {
+            width: 200px;
+            height: 135px;
+            border: none;
+            background-color: #ddd;
+            color: #333;
+            font-size: 24px;
+        }
+
+        #label {
+            font-size: 20px;
+            font-weight: 700;
+            color: #1c87c9;
+        }
+
+        #messages {
+            position: absolute;
+            top: 10;
+            right: 0;
+            padding: 30px;
+            color: black;
+            font-size: 20px;
+        }
+
+        #zatemnenie,
+        #zatemnenie2 {
+            background: rgba(102, 102, 102, 0.5);
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            display: none;
+        }
+
+        #okno,
+        #okno2 {
+            width: 300px;
+            height: 300px;
+            text-align: center;
+            padding: 15px;
+            border: 3px solid #0000cc;
+            border-radius: 10px;
+            color: #0000cc;
+            position: absolute;
+            top: 0;
+            right: 0;
+            bottom: 0;
+            left: 0;
+            margin: auto;
+            background: #fff;
+        }
+
+        #zatemnenie:target,
+        #zatemnenie2:target {
+            display: block;
+        }
+
+        .close {
+            display: inline-block;
+            border: 1px solid #0000cc;
+            color: #0000cc;
+            padding: 0 12px;
+            margin: 10px;
+            text-decoration: none;
+            background: #f2f2f2;
+            font-size: 14pt;
+            cursor: pointer;
+        }
+
+        .close:hover {
+            background: #e6e6ff;
+        }
+    </style>
+
+
+{% endblock %}
+
+{% block content %}
+
+{% endblock %}
+
+{% block body %}
+
+<div class='label' id="messages"></div>
+
+    <table id="table"></table>
+
+    <div id="container">
+        <button id="creatGame" class="btn btn-primary">Create a Game ({{ code }})</button>
+        <button id="creatGameByChatGPT" class="btn btn-primary">Create a Game (ChatGPT)</button>
+    </div>
+
+    <div id="zatemnenie">
+        <div id="okno">
+            <form>
+                <label for="input1">Введите название категории:</label><br>
+                <input type="text" id="category" name="input1">
+                <br><br><br><br><br><br><br><br>
+                <a id="close1" href="#" class="btn btn-primary">Подтвердить</a>
+            </form>
+        </div>
+    </div>
+
+    <div id="zatemnenie2">
+        <div id="okno2">
+            <form>
+                <label for="question">Введите вопрос категории:</label><br>
+                <input type="text" id="question" name="input1"><br>
+                <label for="answer">Введите ответ категории:</label><br>
+                <input type="text" id="answer" name="input2"><br>
+                <br><br><br>
+                <div class="mb-3 form-check">
+                  <input type="checkbox" class="form-check-input" id="exampleCheck" name="action">
+                  <label class="form-check-label" for="exampleCheck">Вопрос-аукцион</label>
+                </div>
+                <a id="close2" href="#" class="btn btn-primary">Подтвердить</a>
+            </form>
+        </div>
+    </div>
+
+    <div class="modal fade" id="myModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="category-name-in-label"></h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+          </div>
+          <div id="person-in-charge" class="modal-body"></div>
+          <div id="question-in-modal" class="modal-body"></div>
+          <br>
+          {% if name == room_data["admin"] %}
+          <div id="answer-in-modal-for-admin" class="modal-body"></div>
+          {% else %}
+          <div id="answer-in-modal-for-customers" class="modal-body"></div>
+          {% endif %}
+          {% if name != room_data["admin"] %}
+          <div class="modal-footer">
+            <button id="i-know-answer" type="button" class="btn btn-primary">Я знаю Ответ!</button>
+          </div>
+          {% else %}
+          <div class="modal-footer">
+            <button id="yes" type="button" class="btn btn-primary">Правильно</button>
+            <button id="no" type="button" class="btn btn-primary">Неправильно</button>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <div class="modal fade" id="winner" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="answer-winner"></h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+          </div>
+          <div class="modal-body">
+            <div class="tenor-gif-embed" data-postid="22755440"
+            data-share-method="host" data-aspect-ratio="1.78771"
+            data-width="100%">
+              <a href="https://tenor.com/view/rick-astly-rick-rolled-gif-22755440">
+                Rick Astly Rick Rolled GIF
+              </a>
+              from
+              <a href="https://tenor.com/search/rick+astly-gifs">
+                Rick Astly GIFs
+              </a>
+            </div>
+            <script type="text/javascript" async src="https://tenor.com/embed.js">
+            </script>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal fade" id="looser" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="answer-looser"></h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+          </div>
+          <div class="modal-body">
+            <div class="tenor-gif-embed" data-postid="26041777"
+            data-share-method="host" data-aspect-ratio="1"
+            data-width="100%">
+              <a href="https://tenor.com/view/the-rock-eyebrow-the-rock-sus-sus-eyebrow-gif-26041777">
+                The Rock Eyebrow The Rock Sus GIF
+              </a>
+              from
+              <a href="https://tenor.com/search/the+rock+eyebrow-gifs">
+                The Rock Eyebrow GIFs
+              </a>
+            </div>
+            <script type="text/javascript" async src="https://tenor.com/embed.js">
+            </script>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal fade" id="game-over" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="game-over-winner"></h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+          </div>
+          <div class="modal-body">
+            <div class="tenor-gif-embed" data-postid="11007354"
+            data-share-method="host" data-aspect-ratio="2"
+            data-width="100%">
+              <a href="https://tenor.com/view/win-victory-hurrah-happiness-happy-gif-11007354">
+                победа счастье радость ура GIF
+              </a>
+              from
+              <a href="https://tenor.com/search/win-gifs">
+                Win GIFs
+              </a>
+            </div>
+            <script type="text/javascript" async src="https://tenor.com/embed.js">
+            </script>
+          </div>
+        </div>
+      </div>
+    </div>
+
+
+{% if room_data["status"] %}
+
+    <script>
+
+      function myFunc(vars) {
+        return vars
+      }
+
+      const gameData = myFunc({{room_data["data_for_lobby"]|tojson}})
+
+    </script>
+
+{% else %}
+
+    <script>
+
+      const gameData = {
+        0: {
+          name: "", 0: [], 1: [], 2: [], 3: [], 4: []
+        },
+        1: {
+          name: "", 0: [], 1: [], 2: [], 3: [], 4: []
+        },
+        2: {
+          name: "", 0: [], 1: [], 2: [], 3: [], 4: []
+        },
+        3: {
+          name: "", 0: [], 1: [], 2: [], 3: [], 4: []
+        },
+        4: {
+          name: "", 0: [], 1: [], 2: [], 3: [], 4: []
+        },
+        5: {
+          name: "", 0: [], 1: [], 2: [], 3: [], 4: []
+        }
+      };
+
+    </script>
+
+{% endif %}
+
+<!-- Скрипт, исполняемый всеми при входе -->
+
+    <script>
+      function myFunc(vars) {
+        return vars
+      }
+
+      const round = myFunc({{room_data["round"]|tojson}})
+      console.log(round)
+
+      var socketio = io();
+
+      const category = document.getElementById("category");
+
+      const messages = document.getElementById("messages");
+
+      const modal = document.getElementById('question-okno');
+
+      let inputVal = '';
+      let namePerson = '';
+      let points;
+
+      const close1Button = document.getElementById('close1');
+      const close2Button = document.getElementById('close2');
+
+      let lastPressedButtonOfFirstColumn;
+      let lastPressedButton;
+
+      const question = document.getElementById("question");
+      const answer = document.getElementById("answer");
+      const exampleCheck = document.getElementById("exampleCheck");
+
+      let table = document.getElementById("table");
+      const creatGame = document.getElementById('creatGame');
+      const creatGameByChatGPT = document.getElementById('creatGameByChatGPT');
+
+      let buttons = document.querySelectorAll(".first-column");
+      let buttons2 = document.querySelectorAll(".questions");
+
+      const buttonIKnowAnswer = document.getElementById("i-know-answer");
+
+      const nameOfWinner = document.getElementById("answer-winner")
+      const nameOfLooser = document.getElementById("answer-looser")
+      const nameOfWinnerGameOver = document.getElementById("game-over-winner")
+
+      const modalElement = document.getElementById('myModal');
+
+      const rightButton = document.getElementById("yes")
+      const notRightButton = document.getElementById("no")
+
+      const personInCharge = document.getElementById("person-in-charge")
+      const categoryNameInLabel = document.getElementById("category-name-in-label");
+      const answerInModalAdmin = document.getElementById("answer-in-modal-for-admin");
+      const answerInModalCustomers = document.getElementById("answer-in-modal-for-customers");
+      const questionInModal = document.getElementById("question-in-modal");
+
+
+      // Создание лэйбла с именами участников сервера
+
+      function creatLabel() {
+
+        const createMessage = (data) => {
+          messages.innerHTML = null
+          for (let name of data) {
+            const content = `
+              <div class="text">
+                <span>
+                  <strong>${name}</strong>
+                </span>
+              </div>
+            `;
+            messages.innerHTML += content;
+          }
+        };
+
+        function creatEvent(name) {
+          // Прячем кнопку "Я знаю Ответ"
+          if (buttonIKnowAnswer) {
+            buttonIKnowAnswer.style.visibility = "hidden";
+          };
+
+          // Показываем кнопки "Правильно" и "Неправильно"
+          if (rightButton && notRightButton) {
+            rightButton.style.visibility = "visible";
+            notRightButton.style.visibility = "visible";
+          };
+
+          // Запоминаем имя первого нажавшего
+          namePerson = name
+          personInCharge.textContent = `Отвечающий: ${namePerson}`
+        }
+
+        function creatQuestionLabel(data) {
+          // Спрятать кнопку с вопросом для всех
+          lstprsdbtn = document.querySelector(`._${data[0]}-${data[1]}`)
+          lstprsdbtn.style.visibility = "hidden";
+
+          // Показать всем кнопку "Я знаю Ответ!"
+          if (buttonIKnowAnswer) {
+            buttonIKnowAnswer.style.visibility = "visible";
+          }
+
+          // Прячем кнопки "Правильно" и "Неправильно"
+          if (rightButton && notRightButton) {
+            rightButton.style.visibility = "hidden";
+            notRightButton.style.visibility = "hidden";
+          }
+
+          let modal = new bootstrap.Modal(modalElement);
+
+          questionInModal.textContent = gameData[data[0]][data[1]][0];
+          categoryNameInLabel.textContent = "Категория: " + gameData[data[0]]["name"];
+          personInCharge.textContent = " "
+
+
+          if (answerInModalAdmin) {
+            answerInModalAdmin.textContent = gameData[data[0]][data[1]][1];
+          }
+          if (answerInModalCustomers) {
+            answerInModalCustomers.textContent = gameData[data[0]][data[1]][1];
+            answerInModalCustomers.style.visibility = "hidden";
+          }
+
+          modal.show()
+        }
+
+        function showLooserEvent() {
+
+          nameOfLooser.textContent = `${namePerson} дал неправильный ответ!`
+
+          const looser = document.getElementById("looser");
+          var modalLooser = new bootstrap.Modal(looser);
+
+          modalLooser.show();
+
+          if (answerInModalAdmin) {
+            if (questionsAreOver()) {
+              socketio.emit("game-is-over")
+              return
+            }
+          }
+        }
+
+        function showWinnerEvent() {
+
+          nameOfWinner.textContent = `${namePerson} дал правильный ответ!`
+
+          if (answerInModalCustomers) {
+            answerInModalCustomers.style.visibility = "visible";
+          }
+
+          const winner = document.getElementById("winner");
+          var modalWinner = new bootstrap.Modal(winner);
+
+          modalWinner.show();
+
+          if (answerInModalAdmin) {
+            if (questionsAreOver()) {
+              socketio.emit("game-is-over")
+              return
+            }
+          }
+        }
+
+        function showGameOverEvent(data) {
+          nameOfWinnerGameOver.textContent = `${data[0]} набрал ${data[1]} очков и одержал победу в игре!`
+
+          const winnerGameOver = document.getElementById("game-over");
+          var modalWinnerGameOver = new bootstrap.Modal(winnerGameOver);
+
+          modalWinnerGameOver.show();
+        }
+
+        socketio.on("message", (data) => {
+          createMessage(data);
+        });
+        socketio.on("reload", () => {
+          alert("Перезагрузите страницу");
+        });
+        socketio.on("show-model", (data) => {
+          creatQuestionLabel(data);
+        });
+        socketio.on("return-the-name-of-the-first-person-who-clicked", (name) => {
+          creatEvent(name);
+        });
+        socketio.on("show-winner-event", () => {
+          showWinnerEvent();
+        });
+        socketio.on("show-looser-event", () => {
+          showLooserEvent();
+        });
+        socketio.on("winner-is", (data) => {
+          showGameOverEvent(data);
+        });
+      };
+
+      // Создание таблицы кнопок
+
+      function creatTable(){
+
+        return new Promise((resolve, reject) => {
+
+          buttons = document.querySelectorAll(".first-column");
+          buttons2 = document.querySelectorAll(".questions");
+
+          if (buttons.length === 0) {
+            for (var i = 0; i < 3; i++) {
+                var row = document.createElement("tr");
+
+                var firstCell = document.createElement("td");
+                var firstButton = document.createElement("button");
+
+                if (gameData[i]["name"] !== undefined) {
+                  firstButton.innerText = gameData[i]["name"]
+                };
+
+                firstButton.classList.add("btn", "btn-primary", "first-column", i);
+                firstCell.appendChild(firstButton);
+                row.appendChild(firstCell);
+
+                for (var j = 0; j < 5; j++) {
+                    var cell = document.createElement("td");
+                    var button = document.createElement("button");
+                    button.innerText = (j + 1) * 100 * round;
+                    button.classList.add("btn", "btn-secondary", "questions", `_${i}-${j}`);
+                    button.style.visibility = "visible"
+                    cell.appendChild(button);
+                    row.appendChild(cell);
+                };
+
+                table.appendChild(row);
+            };
+          };
+          resolve();
+        });
+
+      };
+
+      // Обработка нажатий на кнопки "Правильно" и "Неправильно"
+
+      function processingYes () {
+
+        return new Promise((resolve, reject) => {
+          rightButton.addEventListener("click", function() {
+            console.log("Right!")
+            socketio.emit("show-gif", true)
+            socketio.emit("add-points", [namePerson, points]);
+          });
+          resolve();
+        });
+
+      };
+
+      function processingNo () {
+
+        return new Promise((resolve, reject) => {
+          notRightButton.addEventListener("click", function() {
+            console.log("Not Right!")
+            socketio.emit("show-gif", false)
+            socketio.emit("add-points", [namePerson, -points]);
+          });
+          resolve();
+        });
+
+      };
+
+      // Проверка на окончание раунда
+
+      function questionsAreOver () {
+
+        for (let button of document.querySelectorAll(".questions")) {
+          if (button.style.visibility != "hidden") {
+            return false;
+          };
+        }
+
+        return true;
+      }
+
+      // Обработка нажатий на кнопки с названиями категорий до начала игры
+
+      function processingCategoryClicks () {
+
+        return new Promise((resolve, reject) => {
+
+          buttons = document.querySelectorAll(".first-column");
+
+          for (let button of buttons) {
+            button.addEventListener("click", function() {
+              window.location.href = "#zatemnenie";
+              lastPressedButtonOfFirstColumn = button;
+              category.value = lastPressedButtonOfFirstColumn.textContent;
+            });
+          };
+          resolve();
+        });
+
+      };
+
+      // Обработка нажатий на кнопки с вопросами категорий до начала игры
+
+      function processingQuestionClicks () {
+
+        return new Promise((resolve, reject) => {
+
+          buttons2 = document.querySelectorAll(".questions");
+
+          for (let button2 of buttons2) {
+            button2.addEventListener("click", function() {
+              window.location.href = "#zatemnenie2";
+              lastPressedButton = button2;
+              let questionIndex = button2.getAttribute('class').split(/\s+/)[3].split("-");
+              let c = questionIndex[0].split("_")[1];
+              let x = questionIndex[1];
+              if (gameData[c][x][0] === undefined || gameData[c][x][1] === undefined) {
+                if (gameData[c][x][1] === undefined) {
+                  answer.value = "";
+                }
+                if (gameData[c][x][0] === undefined) {
+                  question.value = "";
+                }
+              }else {
+                question.value = gameData[c][x][0];
+                answer.value = gameData[c][x][1];
+              }
+
+              document.querySelector('.form-check-input').checked = gameData[c][x][2];
+            });
+          };
+          resolve();
+        });
+
+      };
+
+      // Обработка нажатий на кнопку закрытия всплывающего окна для категорий
+
+      function processingClose1Clicks () {
+
+        return new Promise((resolve, reject) => {
+          close1Button.addEventListener("click", function() {
+            if (lastPressedButtonOfFirstColumn) {
+              let categoryIndex = lastPressedButtonOfFirstColumn.getAttribute("class").split(/\s+/)[3];
+              if (category.value === "") {
+                lastPressedButtonOfFirstColumn.style.backgroundColor = "red";
+              }else{
+                lastPressedButtonOfFirstColumn.style.backgroundColor = "green";
+              }
+              gameData[categoryIndex]["name"] = category.value;
+              lastPressedButtonOfFirstColumn.textContent = category.value;
+              lastPressedButtonOfFirstColumn = null;
+              category.value = "";
+            }
+          });
+          resolve();
+        });
+
+      };
+
+      // Обработка нажатий на кнопку закрытия всплывающего окна для вопросов
+
+      function processingClose2Clicks () {
+
+        return new Promise((resolve, reject) => {
+          close2Button.addEventListener("click", function() {
+            if (lastPressedButton) {
+              let index = lastPressedButton.getAttribute('class').split(/\s+/)[3].split("-");
+              let c = index[0].split("_")[1];
+              let x = index[1];
+              if (question.value === "" || answer.value === "") {
+                lastPressedButton.style.backgroundColor = "red";
+              }else{
+                lastPressedButton.style.backgroundColor = "green";
+              }
+              gameData[c][x][0] = question.value;
+              gameData[c][x][1] = answer.value;
+              if (document.querySelector('.form-check-input:checked')) {
+                gameData[c][x][2] = document.querySelector('.form-check-input:checked').value;
+              }else{
+                gameData[c][x][2] = false;
+              };
+
+              question.value = "";
+              answer.value = "";
+
+              lastPressedButton = null;
+            }
+          });
+          resolve();
+        });
+
+      };
+
+      // Функция проверки заполненности категорий
+
+      function allRightWithCategories() {
+
+        buttons = document.querySelectorAll(".first-column");
+
+        for (let button of buttons) {
+          if (button.style.backgroundColor != "green") {
+            return false;
+          };
+        };
+        return true;
+      };
+
+      // Функция проверки заполненности вопросов
+
+      function allRightWithQuestion() {
+
+        buttons2 = document.querySelectorAll(".questions");
+
+        for (let button2 of buttons2) {
+          if (button2.style.backgroundColor != "green") {
+            return false;
+          };
+        };
+        return true;
+      };
+
+      // Обработка нажатий на кнопку начала игры
+
+      function processingcreatGameClicks () {
+
+        return new Promise((resolve, reject) => {
+          creatGame.addEventListener("click", function() {
+            if (allRightWithQuestion() && allRightWithCategories()) {
+              socketio.emit("start_game", gameData);
+            }else{
+              alert("WE CAN'T START");
+            }
+          });
+          resolve();
+        });
+
+      };
+
+      // Обработка нажатия на "creatGameByChatGPT"
+
+      function processingcreatGameByChatGPTClicks () {
+
+        return new Promise((resolve, reject) => {
+          creatGameByChatGPT.addEventListener("click", function() {
+            if (allRightWithCategories()) {
+              socketio.emit("start_game_by_ChatGPT", gameData);
+            }else{
+              alert("WE CAN'T START");
+            }
+          });
+          resolve();
+        });
+
+      };
+
+      // Обработка нажатий на кнопки с вопросами категорий после начала игры
+
+      function newProcessingQuestionClicks () {
+
+        buttons2 = document.querySelectorAll(".questions");
+
+        return new Promise((resolve, reject) => {
+          buttons2.forEach(button2 => {
+            button2.addEventListener('click', () => {
+              lastPressedButton = button2;
+              let index = lastPressedButton.getAttribute('class').split(/\s+/)[3].split("-");
+
+              // Запоминаем, сколько очков даётся за вопрос
+              points = (Number(index[1]) + 1) * 100 * round;
+              console.log(points)
+
+              socketio.emit("question-click", [index[0].split("_")[1], index[1]]);
+            });
+          });
+        });
+        resolve();
+
+      };
+
+      // Обработка нажатия на кнопку "Я знаю Ответ"
+
+      function processingIKnowAnswerClicks () {
+
+        return new Promise((resolve, reject) => {
+          buttonIKnowAnswer.addEventListener('click', () => {
+            socketio.emit("i-know-answer-click");
+          });
+        });
+        resolve();
+
+      };
+
+    </script>
+
+<!-- Скрипт, исполняемый только адмиином, если игра ещё не началась -->
+
+    {% if name == room_data["admin"] and not room_data["status"] %}
+
+    <script>
+
+      var seqRunner = function(deeds) {
+        return deeds.reduce(function(p, deed) {
+          return p.then(function() {
+            // Выполняем следующую функцию только после того, как отработала
+            // предыдущая.
+            return deed();
+          });
+        }, Promise.resolve()); // Инициализируем очередь выполнения.
+      };
+
+      seqRunner([creatLabel, creatTable, processingCategoryClicks,
+      processingQuestionClicks, processingClose1Clicks, processingClose2Clicks,
+      processingcreatGameClicks, processingcreatGameByChatGPTClicks]).then(function() {
+        console.log('Done!');
+      });
+
+    </script>
+
+<!-- Скрипт, исполняемый всеми пользователями, если игра ещё не началась -->
+
+    {% elif not room_data["status"] %}
+
+    <script>
+
+      var seqRunner = function(deeds) {
+        return deeds.reduce(function(p, deed) {
+          return p.then(function() {
+            // Выполняем следующую функцию только после того, как отработала
+            // предыдущая.
+            return deed();
+          });
+        }, Promise.resolve()); // Инициализируем очередь выполнения.
+      };
+
+      seqRunner([creatLabel]).then(function() {
+        console.log('Done!');
+      });
+
+    </script>
+
+    {% endif %}
+
+<!-- Скрипт, исполняемый админами, когда игра начинается-->
+
+    {% if name == room_data["admin"] and room_data["status"] %}
+
+    <script>
+
+      var seqRunner = function(deeds) {
+        return deeds.reduce(function(p, deed) {
+          return p.then(function() {
+            // Выполняем следующую функцию только после того, как отработала
+            // предыдущая.
+            return deed();
+          });
+        }, Promise.resolve()); // Инициализируем очередь выполнения.
+      };
+
+      seqRunner([creatLabel, creatTable, processingYes, processingNo,
+      newProcessingQuestionClicks]).then(function() {
+        console.log('Done!');
+      });
+
+    </script>
+
+<!-- Скрипт, исполняемый пользователями, когда игра начинается -->
+
+    {% elif name != room_data["admin"] and room_data["status"] %}
+
+    <script>
+
+      var seqRunner = function(deeds) {
+        return deeds.reduce(function(p, deed) {
+          return p.then(function() {
+            // Выполняем следующую функцию только после того, как отработала
+            // предыдущая.
+            return deed();
+          });
+        }, Promise.resolve()); // Инициализируем очередь выполнения.
+      };
+
+      seqRunner([creatLabel, creatTable, processingIKnowAnswerClicks]).then(function() {
+        console.log('Done!');
+      });
+
+    </script>
+
+    {% endif %}
+
+    <script
+        src="https://cdnjs.cloudflare.com/ajax/libs/jquery/2.2.4/jquery.min.js">
+    </script>
+
+{% endblock %}
